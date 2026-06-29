@@ -1,395 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Code Generator</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  .glass {
-    background: rgba(255,255,255,0.07);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.12);
-  }
-  .glass-light {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .gradient-text {
-    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .input-field {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #e2e8f0;
-    transition: all 0.25s ease;
-    outline: none;
-  }
-  .input-field:focus {
-    border-color: rgba(167,139,250,0.6);
-    background: rgba(255,255,255,0.09);
-    box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
-  }
-  .input-field::placeholder { color: rgba(148,163,184,0.5); }
-  textarea.input-field { resize: none; }
-  select.input-field option { background: #1e1b4b; color: #e2e8f0; }
-  .color-swatch {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    border: 2px solid rgba(255,255,255,0.2);
-    cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s;
-    padding: 0;
-    overflow: hidden;
-  }
-  .color-swatch:hover { transform: scale(1.1); border-color: rgba(255,255,255,0.5); }
-  input[type="color"] { width: 100%; height: 100%; cursor: pointer; border: none; padding: 0; }
-  #qr-canvas-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 240px;
-  }
-  #qr-canvas-wrapper canvas,
-  #qr-canvas-wrapper img {
-    border-radius: 12px;
-    max-width: 100%;
-  }
-  #qr-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    color: rgba(148,163,184,0.4);
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    color: white;
-    border: none;
-    transition: all 0.25s ease;
-    cursor: pointer;
-  }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(124,58,237,0.35); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-  .btn-secondary {
-    background: rgba(255,255,255,0.06);
-    color: #cbd5e1;
-    border: 1px solid rgba(255,255,255,0.15);
-    transition: all 0.25s ease;
-    cursor: pointer;
-  }
-  .btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #10b981;
-    animation: pulse-dot 2s infinite;
-  }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .pill {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: rgba(167,139,250,0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(167,139,250,0.25);
-    text-transform: uppercase;
-  }
-  .char-count { font-size: 12px; color: rgba(148,163,184,0.5); text-align: right; }
-  .char-count.warn { color: #f59e0b; }
-  .char-count.danger { color: #ef4444; }
-  .label-text { font-size: 13px; font-weight: 500; color: rgba(148,163,184,0.9); margin-bottom: 6px; display: block; }
-  #download-btn { display: none; }
-  .error-level-btn {
-    flex: 1;
-    padding: 8px 4px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: transparent;
-    color: rgba(148,163,184,0.6);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .error-level-btn.active {
-    background: rgba(167,139,250,0.2);
-    border-color: rgba(167,139,250,0.5);
-    color: #a78bfa;
-  }
-  .error-level-btn:hover:not(.active) {
-    background: rgba(255,255,255,0.06);
-    color: #e2e8f0;
-  }
-  .size-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; }
-  .size-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #7c3aed; cursor: pointer; transition: transform 0.15s; }
-  .size-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Free QR code generator with custom colors, center logo upload, and instant local preview. No sign-up required.">
+  <title>QR Code Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
-<body class="p-4 md:p-8 flex items-start justify-center">
+<body>
 
-<div class="w-full max-w-5xl">
+<div class="container">
 
-  <div class="text-center mb-8 pt-4">
-    <div class="flex items-center justify-center gap-3 mb-3">
+  <header class="header">
+    <div class="header-meta">
       <span class="pill">Free Tool</span>
-      <div class="status-dot"></div>
-      <span style="font-size:12px;color:rgba(148,163,184,0.5)">Live preview</span>
+      <div class="status-dot" aria-hidden="true"></div>
+      <span>Live preview</span>
     </div>
-    <h1 class="text-4xl md:text-5xl font-bold gradient-text mb-2">QR Code Generator</h1>
-    <p style="color:rgba(148,163,184,0.6);font-size:15px">Create custom QR codes instantly — no sign-up, no data sent to any server.</p>
-  </div>
+    <h1 class="title gradient-text">QR Code Generator</h1>
+    <p class="subtitle">Create custom QR codes instantly — no sign-up, no data sent to any server.</p>
+  </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+  <div class="grid">
 
-    <div class="lg:col-span-3 flex flex-col gap-5">
+    <div class="col-main">
 
-      <div class="glass rounded-2xl p-5">
-        <label class="label-text">Content</label>
-        <textarea id="qr-input" class="input-field w-full rounded-xl p-3 text-sm leading-relaxed" rows="4" placeholder="https://example.com or any text…" maxlength="2953"></textarea>
-        <div class="flex justify-between items-center mt-2">
-          <span style="font-size:12px;color:rgba(148,163,184,0.4)">Supports URLs, plain text, emails, phone numbers</span>
-          <span id="char-count" class="char-count">0 / 2953</span>
+      <section class="glass" aria-labelledby="content-label">
+        <label id="content-label" class="label-text" for="qr-input">Content</label>
+        <textarea
+          id="qr-input"
+          class="input-field"
+          rows="4"
+          placeholder="https://example.com or any text…"
+          maxlength="2953"
+        ></textarea>
+        <div class="field-footer">
+          <span class="hint">Supports URLs, plain text, emails, phone numbers</span>
+          <span id="char-count" class="char-count" aria-live="polite">0 / 2953</span>
         </div>
-      </div>
+      </section>
 
-      <div class="glass rounded-2xl p-5 grid grid-cols-2 gap-5">
+      <section class="glass glass-grid-2" aria-label="Color settings">
         <div>
-          <label class="label-text">Foreground color</label>
-          <div class="flex items-center gap-3">
-            <div class="color-swatch"><input type="color" id="fg-color" value="#000000"></div>
-            <span id="fg-hex" style="font-size:13px;color:rgba(148,163,184,0.7);font-family:monospace">#000000</span>
+          <label class="label-text" for="fg-color">Foreground color</label>
+          <div class="color-row">
+            <div class="color-swatch">
+              <input type="color" id="fg-color" value="#000000" aria-label="Foreground color picker">
+            </div>
+            <span id="fg-hex" class="color-hex" aria-live="polite">#000000</span>
           </div>
         </div>
         <div>
-          <label class="label-text">Background color</label>
-          <div class="flex items-center gap-3">
-            <div class="color-swatch"><input type="color" id="bg-color" value="#ffffff"></div>
-            <span id="bg-hex" style="font-size:13px;color:rgba(148,163,184,0.7);font-family:monospace">#ffffff</span>
+          <label class="label-text" for="bg-color">Background color</label>
+          <div class="color-row">
+            <div class="color-swatch">
+              <input type="color" id="bg-color" value="#ffffff" aria-label="Background color picker">
+            </div>
+            <span id="bg-hex" class="color-hex" aria-live="polite">#ffffff</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="glass rounded-2xl p-5">
-        <label class="label-text">Error correction level</label>
-        <div class="flex gap-2 mt-1">
-          <button class="error-level-btn active" data-level="L" title="~7% data recovery">L</button>
-          <button class="error-level-btn" data-level="M" title="~15% data recovery">M</button>
-          <button class="error-level-btn" data-level="Q" title="~25% data recovery">Q</button>
-          <button class="error-level-btn" data-level="H" title="~30% data recovery">H</button>
+      <section class="glass" aria-labelledby="ec-label">
+        <span id="ec-label" class="label-text">Error correction level</span>
+        <div class="ec-buttons" role="group" aria-label="Error correction level">
+          <button type="button" class="error-level-btn active" data-level="L" title="~7% data recovery">L</button>
+          <button type="button" class="error-level-btn" data-level="M" title="~15% data recovery">M</button>
+          <button type="button" class="error-level-btn" data-level="Q" title="~25% data recovery">Q</button>
+          <button type="button" class="error-level-btn" data-level="H" title="~30% data recovery">H</button>
         </div>
-        <p id="ec-desc" style="font-size:12px;color:rgba(148,163,184,0.45);margin-top:8px">L — Low (~7% data recovery). Smallest QR code size.</p>
-      </div>
+        <p id="ec-desc" class="ec-desc">L — Low (~7% data recovery). Smallest QR code size.</p>
+      </section>
 
-      <div class="glass rounded-2xl p-5">
-        <div class="flex justify-between items-center mb-3">
-          <label class="label-text" style="margin:0">QR code size</label>
-          <span id="size-val" style="font-size:13px;color:#a78bfa;font-weight:600">256 px</span>
+      <section class="glass" aria-labelledby="size-label">
+        <div class="label-row">
+          <span id="size-label" class="label-text">QR code size</span>
+          <span id="size-val" class="size-val">256 px</span>
         </div>
-        <input type="range" id="qr-size" class="size-slider" min="128" max="512" step="32" value="256">
-        <div class="flex justify-between" style="font-size:11px;color:rgba(148,163,184,0.35);margin-top:6px">
-          <span>128 px</span><span>512 px</span>
+        <input type="range" id="qr-size" class="size-slider" min="128" max="512" step="32" value="256" aria-valuemin="128" aria-valuemax="512" aria-valuenow="256">
+        <div class="slider-labels">
+          <span>128 px</span>
+          <span>512 px</span>
         </div>
-      </div>
+      </section>
+
+      <section class="glass" aria-labelledby="icon-label">
+        <div class="icon-toggle-row">
+          <div>
+            <span id="icon-label" class="label-text">
+              <i data-lucide="image-plus" class="lucide lucide-sm" aria-hidden="true"></i>
+              Center icon / logo
+            </span>
+            <p class="hint" style="margin:0">Upload PNG, SVG, or load from a URL</p>
+          </div>
+          <label class="toggle" aria-label="Enable center icon">
+            <input type="checkbox" id="icon-enabled">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div id="icon-panel" class="icon-panel">
+
+          <div class="icon-source-tabs" role="tablist">
+            <button type="button" class="tab-btn active" data-icon-tab="upload" role="tab" aria-selected="true">
+              <i data-lucide="upload" class="lucide lucide-tab" aria-hidden="true"></i>
+              Upload
+            </button>
+            <button type="button" class="tab-btn" data-icon-tab="url" role="tab" aria-selected="false">
+              <i data-lucide="link" class="lucide lucide-tab" aria-hidden="true"></i>
+              URL
+            </button>
+          </div>
+
+          <div class="tab-panel active" data-icon-panel="upload" role="tabpanel">
+            <label class="file-drop" for="icon-file">
+              <i data-lucide="file-image" class="lucide" style="width:24px;height:24px;color:#a78bfa" aria-hidden="true"></i>
+              <span class="file-drop-text">Click to upload or drag &amp; drop</span>
+              <span class="file-drop-hint">PNG, JPG, WebP, SVG · Max 2 MB</span>
+              <input type="file" id="icon-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+            </label>
+          </div>
+
+          <div class="tab-panel" data-icon-panel="url" role="tabpanel">
+            <div class="url-row">
+              <input type="url" id="icon-url" class="input-field input-field-sm" placeholder="https://example.com/logo.png">
+              <button type="button" id="icon-url-load" class="btn btn-secondary">
+                <i data-lucide="download" class="lucide lucide-sm" aria-hidden="true"></i>
+                Load
+              </button>
+            </div>
+          </div>
+
+          <p id="icon-error" class="icon-error" role="alert"></p>
+
+          <div class="icon-preview-row">
+            <div id="icon-preview-placeholder" class="icon-preview-placeholder" aria-hidden="true">
+              <i data-lucide="image" class="lucide" style="width:24px;height:24px" aria-hidden="true"></i>
+            </div>
+            <img id="icon-preview" class="icon-preview" alt="Icon preview" hidden>
+            <div class="icon-preview-meta">
+              <div id="icon-preview-name" class="icon-preview-name">No icon selected</div>
+              <div id="icon-preview-status" class="icon-preview-status">Upload a file or load from URL</div>
+            </div>
+            <button type="button" id="icon-clear" class="btn-icon" aria-label="Remove icon" disabled>
+              <i data-lucide="trash-2" class="lucide lucide-sm" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div>
+            <div class="label-row">
+              <span class="label-text">Icon size</span>
+              <span id="icon-size-val" class="size-val">20%</span>
+            </div>
+            <input type="range" id="icon-size" class="size-slider" min="10" max="30" step="1" value="20" aria-valuemin="10" aria-valuemax="30" aria-valuenow="20">
+            <div class="slider-labels">
+              <span>10%</span>
+              <span>30%</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
 
     </div>
 
-    <div class="lg:col-span-2 flex flex-col gap-5">
+    <div class="col-preview">
 
-      <div class="glass rounded-2xl p-6 flex flex-col items-center">
+      <section class="glass preview-panel" aria-label="QR code preview">
         <div id="qr-canvas-wrapper">
           <div id="qr-placeholder">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="opacity:0.3">
-              <rect x="4" y="4" width="24" height="24" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
-              <rect x="10" y="10" width="12" height="12" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="36" y="4" width="24" height="24" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
-              <rect x="42" y="10" width="12" height="12" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="4" y="36" width="24" height="24" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
-              <rect x="10" y="42" width="12" height="12" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="36" y="36" width="6" height="6" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="46" y="36" width="6" height="6" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="36" y="46" width="6" height="6" rx="1" fill="currentColor" opacity="0.5"/>
-              <rect x="46" y="46" width="14" height="14" rx="1" fill="currentColor" opacity="0.3"/>
-            </svg>
-            <span style="font-size:13px">Enter text above to generate</span>
+            <i data-lucide="qr-code" class="lucide lucide-lg" aria-hidden="true"></i>
+            <span data-placeholder-text>Enter text above to generate</span>
           </div>
-          <div id="qr-output" style="display:none"></div>
+          <div id="qr-output"></div>
         </div>
-        <div id="download-btn" class="w-full mt-5">
-          <button id="dl-btn" class="btn-primary w-full rounded-xl py-3 px-5 text-sm font-semibold flex items-center justify-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 15V3m0 12l-4-4m4 4l4-4"/><path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/>
-            </svg>
+        <div id="download-btn">
+          <button type="button" id="dl-btn" class="btn btn-primary">
+            <i data-lucide="download" class="lucide lucide-sm" aria-hidden="true"></i>
             Download PNG
           </button>
         </div>
-      </div>
+      </section>
 
-      <div class="glass-light rounded-2xl p-4" style="border-radius:16px">
-        <p style="font-size:12px;color:rgba(148,163,184,0.5);line-height:1.6">
-          <span style="color:rgba(167,139,250,0.8);font-weight:600">Privacy first.</span> All QR codes are generated locally in your browser. No data is uploaded or stored anywhere.
+      <aside class="glass-light">
+        <p class="privacy-text">
+          <strong>Privacy first.</strong> All QR codes are generated locally in your browser. No data is uploaded or stored anywhere.
         </p>
-      </div>
+      </aside>
 
-      <div class="glass-light rounded-2xl p-4">
-        <p style="font-size:12px;font-weight:600;color:rgba(148,163,184,0.6);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Quick presets</p>
-        <div class="flex flex-col gap-2">
-          <button class="preset-btn btn-secondary rounded-lg py-2 px-3 text-xs text-left" data-text="https://">
-            🔗 URL / website
+      <aside class="glass-light">
+        <p class="presets-title">Quick presets</p>
+        <div class="preset-list">
+          <button type="button" class="preset-btn btn btn-secondary" data-text="https://">
+            <i data-lucide="link" class="lucide lucide-sm" aria-hidden="true"></i>
+            URL / website
           </button>
-          <button class="preset-btn btn-secondary rounded-lg py-2 px-3 text-xs text-left" data-text="mailto:hello@example.com">
-            ✉️ Email address
+          <button type="button" class="preset-btn btn btn-secondary" data-text="mailto:hello@example.com">
+            <i data-lucide="mail" class="lucide lucide-sm" aria-hidden="true"></i>
+            Email address
           </button>
-          <button class="preset-btn btn-secondary rounded-lg py-2 px-3 text-xs text-left" data-text="tel:+1234567890">
-            📞 Phone number
+          <button type="button" class="preset-btn btn btn-secondary" data-text="tel:+1234567890">
+            <i data-lucide="phone" class="lucide lucide-sm" aria-hidden="true"></i>
+            Phone number
           </button>
-          <button class="preset-btn btn-secondary rounded-lg py-2 px-3 text-xs text-left" data-text="WIFI:T:WPA;S:NetworkName;P:Password;;">
-            📶 Wi-Fi credentials
+          <button type="button" class="preset-btn btn btn-secondary" data-text="WIFI:T:WPA;S:NetworkName;P:Password;;">
+            <i data-lucide="wifi" class="lucide lucide-sm" aria-hidden="true"></i>
+            Wi-Fi credentials
           </button>
-          <button class="preset-btn btn-secondary rounded-lg py-2 px-3 text-xs text-left" data-text="BEGIN:VCARD&#10;VERSION:3.0&#10;FN:Your Name&#10;TEL:+1234567890&#10;EMAIL:you@example.com&#10;END:VCARD">
-            👤 Contact card (vCard)
+          <button type="button" class="preset-btn btn btn-secondary" data-text="BEGIN:VCARD&#10;VERSION:3.0&#10;FN:Your Name&#10;TEL:+1234567890&#10;EMAIL:you@example.com&#10;END:VCARD">
+            <i data-lucide="contact" class="lucide lucide-sm" aria-hidden="true"></i>
+            Contact card (vCard)
           </button>
         </div>
-      </div>
+      </aside>
 
     </div>
   </div>
 
-  <p class="text-center mt-8" style="font-size:12px;color:rgba(148,163,184,0.25)">Built with QRCode.js · All processing is local · No tracking</p>
+  <footer class="footer">
+    Built with QRCode.js &amp; Lucide Icons · All processing is local · No tracking
+  </footer>
+
 </div>
 
-<script>
-  const input = document.getElementById('qr-input');
-  const fgColor = document.getElementById('fg-color');
-  const bgColor = document.getElementById('bg-color');
-  const fgHex = document.getElementById('fg-hex');
-  const bgHex = document.getElementById('bg-hex');
-  const qrOutput = document.getElementById('qr-output');
-  const qrPlaceholder = document.getElementById('qr-placeholder');
-  const downloadDiv = document.getElementById('download-btn');
-  const dlBtn = document.getElementById('dl-btn');
-  const charCount = document.getElementById('char-count');
-  const sizeSlider = document.getElementById('qr-size');
-  const sizeVal = document.getElementById('size-val');
-  const ecDesc = document.getElementById('ec-desc');
-
-  let qrInstance = null;
-  let currentECLevel = QRCode.CorrectLevel.L;
-  let currentECKey = 'L';
-  let debounceTimer = null;
-
-  const ecDescriptions = {
-    L: 'L — Low (~7% data recovery). Smallest QR code size.',
-    M: 'M — Medium (~15% data recovery). Good balance for most uses.',
-    Q: 'Q — Quartile (~25% data recovery). Better for printed materials.',
-    H: 'H — High (~30% data recovery). Best for logos overlaid on the QR.'
-  };
-  const ecLevels = {
-    L: QRCode.CorrectLevel.L,
-    M: QRCode.CorrectLevel.M,
-    Q: QRCode.CorrectLevel.Q,
-    H: QRCode.CorrectLevel.H
-  };
-
-  function generateQR() {
-    const text = input.value.trim();
-    if (!text) {
-      qrOutput.style.display = 'none';
-      qrPlaceholder.style.display = 'flex';
-      downloadDiv.style.display = 'none';
-      qrInstance = null;
-      return;
-    }
-    qrOutput.innerHTML = '';
-    const size = parseInt(sizeSlider.value);
-    try {
-      qrInstance = new QRCode(qrOutput, {
-        text: text,
-        width: size,
-        height: size,
-        colorDark: fgColor.value,
-        colorLight: bgColor.value,
-        correctLevel: currentECLevel
-      });
-      qrOutput.style.display = 'block';
-      qrPlaceholder.style.display = 'none';
-      downloadDiv.style.display = 'block';
-    } catch(e) {
-      qrOutput.style.display = 'none';
-      qrPlaceholder.style.display = 'flex';
-      qrPlaceholder.innerHTML = '<span style="color:#f87171;font-size:13px">Content too long for this error level. Try a lower correction level.</span>';
-      downloadDiv.style.display = 'none';
-    }
-  }
-
-  function scheduleGenerate() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(generateQR, 150);
-  }
-
-  function updateCharCount() {
-    const len = input.value.length;
-    const max = 2953;
-    charCount.textContent = `${len} / ${max}`;
-    charCount.className = 'char-count' + (len > max * 0.9 ? ' danger' : len > max * 0.7 ? ' warn' : '');
-  }
-
-  input.addEventListener('input', () => { updateCharCount(); scheduleGenerate(); });
-
-  fgColor.addEventListener('input', () => { fgHex.textContent = fgColor.value; scheduleGenerate(); });
-  bgColor.addEventListener('input', () => { bgHex.textContent = bgColor.value; scheduleGenerate(); });
-
-  document.querySelectorAll('.error-level-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.error-level-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentECKey = btn.dataset.level;
-      currentECLevel = ecLevels[currentECKey];
-      ecDesc.textContent = ecDescriptions[currentECKey];
-      scheduleGenerate();
-    });
-  });
-
-  sizeSlider.addEventListener('input', () => {
-    sizeVal.textContent = sizeSlider.value + ' px';
-    scheduleGenerate();
-  });
-
-  dlBtn.addEventListener('click', () => {
-    const canvas = qrOutput.querySelector('canvas');
-    if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = 'qrcode.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  });
-
-  document.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      input.value = btn.dataset.text.replace(/&#10;/g, '\n');
-      input.focus();
-      updateCharCount();
-      scheduleGenerate();
-    });
-  });
-</script>
 </body>
 </html>
